@@ -1,8 +1,9 @@
 version: 2.1
+version: 2.1
 orbs:
   terraform: circleci/terraform@3.2.0
 workflows:
-  deploy_infra:
+  deploy_infrastructure:
     jobs:
       - terraform/init:
           context: Terraform
@@ -18,7 +19,7 @@ workflows:
       - terraform/plan:
           checkout: true
           context: Terraform
-          path: .
+          path: terraform
           persist-workspace: true
           var_file : prod.tfvars
           requires:
@@ -28,6 +29,6 @@ workflows:
           context: Terraform
           filters:
             branches:
-              only: main
+              only: test
           requires:
             - terraform/plan
