@@ -26,6 +26,7 @@ workflows:
       - terraform/apply:
           attach-workspace: true
           context: Terraform
+          path: terraform
           filters:
             branches:
               only: main
