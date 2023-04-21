@@ -1,0 +1,98 @@
+
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+
+    stages {
+        stage('Checkout') {
+           agent{
+                label 'sl-1'
+            }
+            steps {
+                checkout scmGit(branches: [[name: '${Branch}']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/PRABHAKARAN-R-ML/terraform.git']])
+                stash 'tf'
+            }
+        }
+        stage ("terraform init") {
+            agent{
+                    label 'sl-2'
+                }
+            steps {
+                
+                unstash 'tf'
+                dir('terraform')
+                {
+                    sh ('terraform init -reconfigure') 
+                }
+            }
+        }
+        stage ("terraform fmt") {
+            agent{
+                    label 'sl-1'
+                }
+            steps {
+                unstash 'tf'
+                dir('terraform')
+                {
+                    sh ('terraform fmt') 
+                }
+            }
+        }
+      
+        stage ("terraform plan") {
+            agent{
+                    label 'sl-2'
+                }
+            steps {
+                unstash 'tf'
+                dir('terraform')
+                {
+                    sh ('terraform plan') 
+                }
+            }
+        }       
+        stage ("terraform Action") {
+            agent{
+                    label 'sl-2'
+                }
+            steps {
+                unstash 'tf'
+                dir('terraform')
+                {
+                    echo "Terraform action is --> ${action}"
+                     script 
+                        {
+                            if ("${action}"== 'apply') 
+                                {
+                                    sh ('terraform ${action} -var-file=prod.tfvars --auto-approve') 
+                                }
+                            else 
+                                {
+                                sh ("terraform destroy --auto-approve")
+                            }
+                    }
+                    
+                }
+           }
+        }
+    }
+
+    post{
+        success{
+                emailext body: 'Executed Successfully',
+                subject: 'SUCCESS',
+                to: 'prabhurock2000@gmail.com'
+                cleanWs()
+            }
+        failure {
+                emailext body: 'Failed',
+                subject: 'Failed',
+                to: 'prabhurock2000@gmail.com'
+                cleanWs()
+        }
+    }
+       
+}
